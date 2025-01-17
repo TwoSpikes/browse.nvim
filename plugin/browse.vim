@@ -1,5 +1,6 @@
 function! browse#setup()
 	let g:browse_page_id = 0
+	let g:browse_highlight_max_id = 0
 	hi BrowseNvim_Strong ctermfg=NONE ctermbg=NONE cterm=bold guifg=NONE guibg=NONE
 	if has('nvim') || has('gui_running')
 		hi BrowseNvim_Strong gui=bold
@@ -10,6 +11,66 @@ function! browse#setup()
 	endif
 endfunction
 
+function! s:return_highlight_term(group, term)
+   " Store output of group to variable
+   let output = execute('hi ' . a:group)
+
+   " Find the term we're looking for
+   return matchstr(output, a:term.'=\zs\S*')
+endfunction
+function! s:merge_colors(first, second)
+	let first = str2nr(a:first[1:], 16)
+	let second = str2nr(a:second[1:], 16)
+	let first_r = and(first, 0xFF0000) / 65536
+	let second_r = and(second, 0xFF0000) / 65536
+	let first_g = and(first, 0x00FF00) / 256
+	let second_g = and(second, 0x00FF00) / 256
+	let first_b = and(first, 0x0000FF)
+	let second_b = and(second, 0x0000FF)
+	let r = (first_r + second_r) / 2
+	let g = (first_g + second_g) / 2
+	let b = (first_b + second_b) / 2
+	let color = printf("%06x", r * 65536 + g * 256 + b)
+	return color
+endfunction
+function! s:merge_highlight_groups(main, secondary, destination)
+	let main_guifg = s:return_highlight_term(a:main, "guifg")
+	let secondary_guifg = s:return_highlight_term(a:secondary, "guifg")
+	if main_guifg ==# ""
+		let guifg = secondary_guifg
+	elseif secondary_guifg ==# ""
+		let guifg = main_guifg
+	else
+		let guifg = s:merge_colors(main_guifg, secondary_guifg)
+	endif
+	let main_guibg = s:return_highlight_term(a:main, "guibg")
+	let secondary_guibg = s:return_highlight_term(a:secondary, "guibg")
+	if main_guibg ==# ""
+		let guibg = secondary_guibg
+	elseif secondary_guibg ==# ""
+		let guibg = s:merge_colors(main_guibg, secondary_guibg)
+	endif
+	let main_gui = s:return_highlight_term(a:main, "gui")
+	let secondary_gui = s:return_highlight_term(a:secondary, "gui")
+	let main_gui = split(main_gui, ",")
+	let secondary_gui = split(secondary_gui, ",")
+	let gui = main_gui
+	let gui += secondary_gui
+	call sort(gui)
+	call uniq(gui)
+	let gui = join(gui, ",")
+	if guifg ==# ""
+		let guifg = "NONE"
+	endif
+	if guibg ==# ""
+		let guibg = "NONE"
+	endif
+	if gui ==# ""
+		let gui = "NONE"
+	endif
+	execute "hi" a:destination "guifg=#".guifg "guibg=#".guibg "gui=".gui
+endfunction
+
 function! browse#generate_page(document_text)
 	let page = []
 	let state = 'default'
@@ -18,7 +79,6 @@ function! browse#generate_page(document_text)
 		let page_line = []
 		let c_idx = 0
 		while c_idx < len(line)
-			echomsg "hl_stack:".string(hl_stack).";"
 			let c = line[c_idx]
 			if v:false
 			elseif state ==# 'default'
@@ -71,7 +131,9 @@ function! browse#generate_page(document_text)
 					else
 						let hl = 'Normal'
 					endif
-					let hl_stack += [hl]
+					call s:merge_highlight_groups(hl, hl_stack[-1], 'BrowseNvim_Color_'.g:browse_highlight_max_id)
+					let hl_stack += ['BrowseNvim_Color_'.g:browse_highlight_max_id]
+					let g:browse_highlight_max_id += 1
 					let line = strpart(line, c_idx+1)
 					let c_idx = 0
 					continue
@@ -107,10 +169,8 @@ function! browse#generate_page(document_text)
 endfunction
 
 function! browse#render_page(document_text, bufnr, ns_id)
-	let g:browse_page_id += 1
 	let linecount = len(a:document_text)
 	let page = browse#generate_page(a:document_text)
-	echomsg "page is:".string(page).";"
 	let line_index = 0
 	let line_count = len(page)
 	while line_index < line_count
@@ -129,6 +189,15 @@ function! browse#render_page(document_text, bufnr, ns_id)
 	endwhile
 endfunction
 
+function! browse#quit(bufnr, ns_id)
+	call nvim_buf_clear_namespace(a:bufnr, a:ns_id, 0, line('$')-1)
+	quit
+endfunction
+
+function! browse#add_mappings(ns_id)
+	execute "noremap <buffer> q <cmd>call browse#quit(bufnr(), ".a:ns_id.")<cr>"
+endfunction
+
 function! browse#open_page(document_text)
 	new
 	setlocal buftype=nofile
@@ -140,8 +209,10 @@ function! browse#open_page(document_text)
 	let bufnr = bufnr()
 	let ns_id = nvim_create_namespace('browse-nvim-'.g:browse_page_id)
 	call browse#render_page(a:document_text, bufnr, ns_id)
+	call browse#add_mappings(ns_id)
 	setlocal nomodified
 	setlocal nomodifiable
+	let g:browse_page_id += 1
 	return bufnr
 endfunction
 
