@@ -2,7 +2,10 @@
 
 Browser plug-in for NeoVim
 
-Currently it supports only `<strong>` tag
+# Supported features
+
+- `<strong>`
+- `<i>`
 
 # Installation
 
