@@ -1,6 +1,6 @@
 # Browse.nvim
 
-Browser plug-in for Vim/NeoVim
+Browser plug-in for NeoVim
 
 Currently it supports only `<strong>` tag
 
