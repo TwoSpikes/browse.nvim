@@ -36,19 +36,27 @@ endfunction
 function! s:merge_highlight_groups(main, secondary, destination)
 	let main_guifg = s:return_highlight_term(a:main, "guifg")
 	let secondary_guifg = s:return_highlight_term(a:secondary, "guifg")
-	if main_guifg ==# ""
-		let guifg = secondary_guifg
-	elseif secondary_guifg ==# ""
+	if main_guifg !=# ""
 		let guifg = main_guifg
+	elseif secondary_guifg !=# ""
+		let guifg = secondary_guifg
 	else
-		let guifg = s:merge_colors(main_guifg, secondary_guifg)
+		let guifg = ""
+	endif
+	if guifg ==# ""
+		let guifg = "NONE"
 	endif
 	let main_guibg = s:return_highlight_term(a:main, "guibg")
 	let secondary_guibg = s:return_highlight_term(a:secondary, "guibg")
-	if main_guibg ==# ""
+	if main_guibg !=# ""
+		let guibg = main_guibg
+	elseif secondary_guibg !=# ""
 		let guibg = secondary_guibg
-	elseif secondary_guibg ==# ""
-		let guibg = s:merge_colors(main_guibg, secondary_guibg)
+	else
+		let guibg = ""
+	endif
+	if guubg ==# ""
+		let guibg = "NONE"
 	endif
 	let main_gui = s:return_highlight_term(a:main, "gui")
 	let secondary_gui = s:return_highlight_term(a:secondary, "gui")
