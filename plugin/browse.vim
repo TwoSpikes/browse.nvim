@@ -55,7 +55,7 @@ function! s:merge_highlight_groups(main, secondary, destination)
 	else
 		let guibg = ""
 	endif
-	if guubg ==# ""
+	if guibg ==# ""
 		let guibg = "NONE"
 	endif
 	let main_gui = s:return_highlight_term(a:main, "gui")
