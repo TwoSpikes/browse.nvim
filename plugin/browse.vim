@@ -83,11 +83,13 @@ function! browse#generate_page(document_text)
 	let page = []
 	let state = 'default'
 	let hl_stack = ['Normal']
+	let add_space = v:null
 	for line in a:document_text
 		let page_line = []
 		let c_idx = 0
 		while c_idx < len(line)
 			let c = line[c_idx]
+			let page_line_len = len(page_line)
 			if v:false
 			elseif state ==# 'default'
 				if c ==# '<'
@@ -98,21 +100,34 @@ function! browse#generate_page(document_text)
 					let state = 'tag_close_name'
 					let opts = {}
 					let val = strpart(line, 0, c_idx-1)
+					if add_space !=# v:null
+						let opts2 = {}
+						let opts2['val'] = ' '
+						let opts2['hl'] = add_space
+						let page_line += [opts2]
+						unlet opts2
+						let add_space = v:null
+					endif
 					if len(val) <# 1
-						let add_space = v:false
+						let add_space_before = v:false
+						let add_space_after = v:false
 					else
-						let add_space = charclass(val[len(val)-1]) ==# 0
+						let add_space_before = charclass(val[0]) ==# 0
+						let add_space_after = charclass(val[len(val)-1]) ==# 0
 					endif
 					let val = split(val)
 					let val = join(val, ' ')
 					let opts['val'] = val
-					if add_space
+					if add_space_before && page_line_len ># 0
 						let opts['val'] = ' '.opts['val']
 					endif
 					unlet val
 					let line = strpart(line, c_idx)
 					let c_idx = 0
 					let opts['hl'] = hl_stack[-1]
+					if add_space_after
+						let add_space = opts['hl']
+					endif
 					call remove(hl_stack, -1)
 					if len(hl_stack) <# 1
 						let hl_stack += ['Normal']
@@ -125,21 +140,34 @@ function! browse#generate_page(document_text)
 					let state = 'tag_open_name'
 					let opts = {}
 					let val = strpart(line, 0, c_idx-1)
+					if add_space !=# v:null
+						let opts2 = {}
+						let opts2['val'] = ' '
+						let opts2['hl'] = add_space
+						let page_line += [opts2]
+						unlet opts2
+						let add_space = v:null
+					endif
 					if len(val) <# 1
-						let add_space = v:false
+						let add_space_before = v:false
+						let add_space_after = v:false
 					else
-						let add_space = charclass(val[len(val)-1]) ==# 0
+						let add_space_before = charclass(val[0]) ==# 0
+						let add_space_after = charclass(val[len(val)-1]) ==# 0
 					endif
 					let val = split(val)
 					let val = join(val, ' ')
 					let opts['val'] = val
-					if add_space
-						let opts['val'] .= ' '
+					if add_space_before && page_line_len ># 0
+						let opts['val'] = ' '.opts['val']
 					endif
 					unlet val
 					let line = strpart(line, c_idx)
 					let c_idx = 0
 					let opts['hl'] = hl_stack[-1]
+					if add_space_after
+						let add_space = opts['hl']
+					endif
 					let page_line += [opts]
 					continue
 				endif
@@ -181,19 +209,32 @@ function! browse#generate_page(document_text)
 		endwhile
 		if line !=# ''
 			let opts = {}
+			if add_space !=# v:null
+				let opts2 = {}
+				let opts2['val'] = ' '
+				let opts2['hl'] = add_space
+				let page_line += [opts2]
+				unlet opts2
+				let add_space = v:null
+			endif
 			if len(line) <# 1
-				let add_space = v:false
+				let add_space_before = v:false
+				let add_space_after = v:false
 			else
-				let add_space = charclass(line[len(line)-1]) ==# 0
+				let add_space_before = charclass(line[0]) ==# 0
+				let add_space_after = charclass(line[len(line)-1]) ==# 0
 			endif
 			let val = split(line)
 			let val = join(val, ' ')
 			let opts['val'] = val
-			if add_space
+			if add_space_before && page_line_len ># 0
 				let opts['val'] = ' '.opts['val']
 			endif
 			unlet val
 			let opts['hl'] = hl_stack[-1]
+			if add_space_after
+				let add_space = opts['hl']
+			endif
 			call remove(hl_stack, -1)
 			if len(hl_stack) <# 1
 				let hl_stack += ['Normal']
@@ -211,6 +252,7 @@ function! browse#render_page(document_text, bufnr, ns_id)
 	let line_index = 0
 	let line_count = len(page)
 	while line_index < line_count
+		mode
 		let line = page[line_index]
 		call setline(line_index+1, '')
 		for item in line
