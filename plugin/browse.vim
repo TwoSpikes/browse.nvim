@@ -98,8 +98,17 @@ function! browse#generate_page(document_text)
 					let state = 'tag_close_name'
 					let opts = {}
 					let val = strpart(line, 0, c_idx-1)
-					let val = trim(val)
+					if len(val) <# 1
+						let add_space = v:false
+					else
+						let add_space = charclass(val[len(val)-1]) ==# 0
+					endif
+					let val = split(val)
+					let val = join(val, ' ')
 					let opts['val'] = val
+					if add_space
+						let opts['val'] = ' '.opts['val']
+					endif
 					unlet val
 					let line = strpart(line, c_idx)
 					let c_idx = 0
@@ -116,8 +125,17 @@ function! browse#generate_page(document_text)
 					let state = 'tag_open_name'
 					let opts = {}
 					let val = strpart(line, 0, c_idx-1)
-					let val = trim(val)
+					if len(val) <# 1
+						let add_space = v:false
+					else
+						let add_space = charclass(val[len(val)-1]) ==# 0
+					endif
+					let val = split(val)
+					let val = join(val, ' ')
 					let opts['val'] = val
+					if add_space
+						let opts['val'] .= ' '
+					endif
 					unlet val
 					let line = strpart(line, c_idx)
 					let c_idx = 0
@@ -135,6 +153,8 @@ function! browse#generate_page(document_text)
 					elseif tag_name ==? 'strong'
 						let hl = 'BrowseNvim_Strong'
 					elseif tag_name ==? 'i'
+						let hl = 'BrowseNvim_Italic'
+					elseif tag_name ==? 'em'
 						let hl = 'BrowseNvim_Italic'
 					else
 						let hl = 'Normal'
@@ -161,8 +181,17 @@ function! browse#generate_page(document_text)
 		endwhile
 		if line !=# ''
 			let opts = {}
-			let val = trim(line)
+			if len(line) <# 1
+				let add_space = v:false
+			else
+				let add_space = charclass(line[len(line)-1]) ==# 0
+			endif
+			let val = split(line)
+			let val = join(val, ' ')
 			let opts['val'] = val
+			if add_space
+				let opts['val'] = ' '.opts['val']
+			endif
 			unlet val
 			let opts['hl'] = hl_stack[-1]
 			call remove(hl_stack, -1)
