@@ -81,11 +81,14 @@ endfunction
 
 function! browse#generate_page(document_text)
 	let page = []
+	let page_line = []
 	let state = 'default'
 	let hl_stack = ['Normal']
 	let add_space = v:null
-	for line in a:document_text
-		let page_line = []
+	let document_text_len = len(a:document_text)
+	let l_idx = 0
+	while l_idx < document_text_len
+		let line = a:document_text[l_idx]
 		let c_idx = 0
 		while c_idx < len(line)
 			let c = line[c_idx]
@@ -114,6 +117,7 @@ function! browse#generate_page(document_text)
 					else
 						let add_space_before = charclass(val[0]) ==# 0
 						let add_space_after = charclass(val[len(val)-1]) ==# 0
+						let add_space_after += l_idx <# document_text_len + 1
 					endif
 					let val = split(val)
 					let val = join(val, ' ')
@@ -154,6 +158,7 @@ function! browse#generate_page(document_text)
 					else
 						let add_space_before = charclass(val[0]) ==# 0
 						let add_space_after = charclass(val[len(val)-1]) ==# 0
+						let add_space_after += l_idx < document_text_len + 1
 					endif
 					let val = split(val)
 					let val = join(val, ' ')
@@ -223,6 +228,7 @@ function! browse#generate_page(document_text)
 			else
 				let add_space_before = charclass(line[0]) ==# 0
 				let add_space_after = charclass(line[len(line)-1]) ==# 0
+				let add_space_after += l_idx <# document_text_len + 1
 			endif
 			let val = split(line)
 			let val = join(val, ' ')
@@ -241,14 +247,18 @@ function! browse#generate_page(document_text)
 			endif
 			let page_line += [opts]
 		endif
+		let l_idx += 1
+	endwhile
+	if page_line !=# []
 		let page += [page_line]
-	endfor
+	endif
 	return page
 endfunction
 
 function! browse#render_page(document_text, bufnr, ns_id)
 	let linecount = len(a:document_text)
 	let page = browse#generate_page(a:document_text)
+	echomsg "page is:".string(page).";"
 	let line_index = 0
 	let line_count = len(page)
 	while line_index < line_count
@@ -285,6 +295,11 @@ function! browse#open_page(document_text)
 	setlocal undolevels=-1
 	setlocal nomodeline
 	setlocal filetype=
+	setlocal wrap
+	setlocal linebreak
+	setlocal nolist
+	setlocal nonumber
+	setlocal norelativenumber
 	let bufnr = bufnr()
 	let ns_id = nvim_create_namespace('browse-nvim-'.g:browse_page_id)
 	call browse#render_page(a:document_text, bufnr, ns_id)
