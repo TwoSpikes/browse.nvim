@@ -258,7 +258,6 @@ endfunction
 function! browse#render_page(document_text, bufnr, ns_id)
 	let linecount = len(a:document_text)
 	let page = browse#generate_page(a:document_text)
-	echomsg "page is:".string(page).";"
 	let line_index = 0
 	let line_count = len(page)
 	while line_index < line_count
