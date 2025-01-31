@@ -7,6 +7,7 @@ Browser plug-in for NeoVim
 - `<strong>`
 - `<i>`
 - `<em>`
+- `<!--  -->` (`<!   >`)
 
 # Installation
 
