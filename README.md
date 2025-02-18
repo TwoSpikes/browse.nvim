@@ -2,12 +2,25 @@
 
 Browser plug-in for NeoVim
 
-# Supported features
+# HTML features
 
 - `<strong>`
 - `<i>`
 - `<em>`
-- `<!--  -->` (`<!   >`)
+- Comments: `<!--  -->` (`<!   >`)
+- Escaping: like `&lt;`
+- `<h1>`
+- `<h2>`
+- `<h3>`
+- `<h4>`
+- `<h5>`
+- `<h6>`
+- `<img href="abc" alt="def">`
+- `<div>` (a.k.a. `<p>`)
+- `<br>`
+
+> [!Note]
+> Self-closing tags are not supported yet
 
 # Installation
 
