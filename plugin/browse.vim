@@ -89,10 +89,10 @@ function! browse#generate_page(document_text)
 	let l_idx = 0
 	while l_idx < document_text_len
 		let line = a:document_text[l_idx]
+		let page_line_len = 0
 		let c_idx = 0
 		while c_idx < len(line)
 			let c = line[c_idx]
-			let page_line_len = len(page_line)
 			if v:false
 			elseif state ==# 'comment'
 				if c ==# '>'
@@ -110,14 +110,6 @@ function! browse#generate_page(document_text)
 					let state = 'comment'
 					let opts = {}
 					let val = strpart(line, 0, c_idx-1)
-					if add_space !=# v:null
-						let opts2 = {}
-						let opts2['val'] = ' '
-						let opts2['hl'] = add_space
-						let page_line += [opts2]
-						unlet opts2
-						let add_space = v:null
-					endif
 					if len(val) <# 1
 						let add_space_before = v:false
 						let add_space_after = v:false
@@ -126,6 +118,15 @@ function! browse#generate_page(document_text)
 						let add_space_after = charclass(val[len(val)-1]) ==# 0
 						let add_space_after += l_idx <# document_text_len + 1
 					endif
+					if add_space !=# v:null && !add_space_before
+						let opts2 = {}
+						let opts2['val'] = ' '
+						let page_line_len += 1
+						let opts2['hl'] = add_space
+						let page_line += [opts2]
+						unlet opts2
+						let add_space = v:null
+					endif
 					let val = split(val)
 					let val = join(val, ' ')
 					let opts['val'] = val
@@ -133,10 +134,12 @@ function! browse#generate_page(document_text)
 					if add_space_before && page_line_len ># 0
 						let opts['val'] = ' '.opts['val']
 					endif
+					let page_line_len += len(opts['val'])
 					let line = strpart(line, c_idx)
 					let c_idx = 0
 					let opts['hl'] = hl_stack[-1]
 					if add_space_after
+						echomsg "YEAH"
 						let add_space = opts['hl']
 					endif
 					call remove(hl_stack, -1)
@@ -149,29 +152,35 @@ function! browse#generate_page(document_text)
 					let state = 'tag_close_name'
 					let opts = {}
 					let val = strpart(line, 0, c_idx-1)
-					if add_space !=# v:null
-						let opts2 = {}
-						let opts2['val'] = ' '
-						let opts2['hl'] = add_space
-						let page_line += [opts2]
-						unlet opts2
-						let add_space = v:null
-					endif
 					if len(val) <# 1
 						let add_space_before = v:false
 						let add_space_after = v:false
 					else
 						let add_space_before = charclass(val[0]) ==# 0
+						let add_space_before *= page_line_len ># 0
 						let add_space_after = charclass(val[len(val)-1]) ==# 0
-						let add_space_after += l_idx <# document_text_len + 1
+						let add_space_after *= l_idx <# document_text_len + 1
 					endif
+					if add_space !=# v:null && !add_space_before
+						let opts2 = {}
+						let opts2['val'] = ' '
+						let page_line_len += 1
+						let opts2['hl'] = add_space
+						let page_line += [opts2]
+						unlet opts2
+						let add_space = v:null
+					endif
+					echomsg "MB2,val:".val.",pll:".page_line_len.";"
+					echomsg "pl is:".string(page_line).";"
+					echomsg "asb:".add_space_before.",asa:".add_space_after.";"
 					let val = split(val)
 					let val = join(val, ' ')
 					let opts['val'] = val
+					unlet val
 					if add_space_before && page_line_len ># 0
 						let opts['val'] = ' '.opts['val']
 					endif
-					unlet val
+					let page_line_len += len(opts['val'])
 					let line = strpart(line, c_idx)
 					let c_idx = 0
 					let opts['hl'] = hl_stack[-1]
@@ -190,14 +199,6 @@ function! browse#generate_page(document_text)
 					let state = 'tag_open_name'
 					let opts = {}
 					let val = strpart(line, 0, c_idx-1)
-					if add_space !=# v:null
-						let opts2 = {}
-						let opts2['val'] = ' '
-						let opts2['hl'] = add_space
-						let page_line += [opts2]
-						unlet opts2
-						let add_space = v:null
-					endif
 					if len(val) <# 1
 						let add_space_before = v:false
 						let add_space_after = v:false
@@ -206,6 +207,17 @@ function! browse#generate_page(document_text)
 						let add_space_after = charclass(val[len(val)-1]) ==# 0
 						let add_space_after += l_idx < document_text_len + 1
 					endif
+					if add_space !=# v:null && !add_space_before
+						let opts2 = {}
+						let opts2['val'] = ' '
+						let page_line_len += 1
+						let opts2['hl'] = add_space
+						let page_line += [opts2]
+						unlet opts2
+						let add_space = v:null
+					endif
+					echomsg "MB,val:".val.";"
+					echomsg "asb:".add_space_before.",asa:".add_space_after.";"
 					let val = split(val)
 					let val = join(val, ' ')
 					let opts['val'] = val
@@ -213,10 +225,12 @@ function! browse#generate_page(document_text)
 						let opts['val'] = ' '.opts['val']
 					endif
 					unlet val
+					let page_line_len += len(opts['val'])
 					let line = strpart(line, c_idx)
 					let c_idx = 0
 					let opts['hl'] = hl_stack[-1]
 					if add_space_after
+						echomsg "YEAH3"
 						let add_space = opts['hl']
 					endif
 					let page_line += [opts]
@@ -260,14 +274,6 @@ function! browse#generate_page(document_text)
 		endwhile
 		if line !=# '' && state !=# 'comment'
 			let opts = {}
-			if add_space !=# v:null
-				let opts2 = {}
-				let opts2['val'] = ' '
-				let opts2['hl'] = add_space
-				let page_line += [opts2]
-				unlet opts2
-				let add_space = v:null
-			endif
 			if len(line) <# 1
 				let add_space_before = v:false
 				let add_space_after = v:false
@@ -276,6 +282,15 @@ function! browse#generate_page(document_text)
 				let add_space_after = charclass(line[len(line)-1]) ==# 0
 				let add_space_after += l_idx <# document_text_len + 1
 			endif
+			if add_space !=# v:null && !add_space_before
+				let opts2 = {}
+				let opts2['val'] = ' '
+				let page_line_len += 1
+				let opts2['hl'] = add_space
+				let page_line += [opts2]
+				unlet opts2
+				let add_space = v:null
+			endif
 			let val = split(line)
 			let val = join(val, ' ')
 			let opts['val'] = val
@@ -283,6 +298,7 @@ function! browse#generate_page(document_text)
 				let opts['val'] = ' '.opts['val']
 			endif
 			unlet val
+			let page_line_len += len(opts['val'])
 			let opts['hl'] = hl_stack[-1]
 			if add_space_after
 				let add_space = opts['hl']
