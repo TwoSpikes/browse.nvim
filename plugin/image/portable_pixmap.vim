@@ -1,3 +1,7 @@
+function! image#portable_pixmap#setup()
+	let g:image_portable_pixmap_id = 0
+endfunction
+
 function! s:is_highlight_group_defined(group)
 	silent! let output = execute('hi '.a:group)
 	return output !~# 'E411:' && output !~# 'cleared'
@@ -78,6 +82,10 @@ function! image#portable_pixmap#read(filename, newbuffer=v:true, insert_in_line=
 		setlocal undolevels=-1
 		setlocal nonumber
 		setlocal norelativenumber
+		setlocal nowrap
+		setlocal nomodeline
+		setlocal filetype=
+		setlocal nolist
 	endif
 	call append(a:insert_in_line, repeat([repeat('#', cols)], rows))
 	if a:newbuffer
@@ -86,7 +94,10 @@ function! image#portable_pixmap#read(filename, newbuffer=v:true, insert_in_line=
 		setlocal nomodified
 		execute a:insert_in_line + 1
 	endif
-	let ns_id = nvim_create_namespace('ppm_image')
+	let ns_id = nvim_create_namespace('ppm-image-'.g:image_portable_pixmap_id)
+	if a:newbuffer
+		call s:add_mappings(ns_id)
+	endif
 	let bufnr = bufnr()
 	if format ==# "P6"
 		let colors_line = join(lines[start + 2:], "\n")
@@ -148,4 +159,18 @@ function! image#portable_pixmap#read(filename, newbuffer=v:true, insert_in_line=
 		let i += 1
 		let line += 1
 	endwhile
+	let g:image_portable_pixmap_id += 1
+	if a:newbuffer
+		return bufnr
+	else
+		return ns_id
+	endif
+endfunction
+
+function! s:quit(ns_id)
+	call nvim_buf_clear_namespace(bufnr(), a:ns_id, 0, line('$')-1)
+endfunction
+
+function! s:add_mappings(ns_id)
+	execute "noremap <buffer> q <cmd>call <sid>quit(".a:ns_id.")<cr>"
 endfunction

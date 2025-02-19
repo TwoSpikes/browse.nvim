@@ -1,6 +1,7 @@
 function! browse#setup()
 	let g:browse_page_id = 0
 	let g:browse_highlight_max_id = 0
+	let g:browse_main_menu_id = 0
 	hi BrowseNvim_Strong ctermfg=NONE ctermbg=NONE cterm=bold guifg=NONE guibg=NONE
 	if has('nvim') || has('gui_running')
 		hi BrowseNvim_Strong gui=bold
@@ -9,6 +10,9 @@ function! browse#setup()
 	if has('nvim') || has('gui_running')
 		hi BrowseNvim_Italic gui=italic
 	endif
+	execute 'source' fnamemodify(expand('%:p'), ':h').'/image/portable_pixmap.vim'
+	call image#portable_pixmap#setup()
+	let g:browse_setup = 1
 endfunction
 
 function! s:return_highlight_term(group, term)
@@ -578,8 +582,9 @@ function! browse#quit(bufnr, ns_id)
 	quit
 endfunction
 
-function! browse#add_mappings(ns_id)
+function! browse#add_mappings(ns_id, filename)
 	execute "noremap <buffer> q <cmd>call browse#quit(bufnr(), ".a:ns_id.")<cr>"
+	execute "noremap <buffer> <f6> <cmd>call browse#address_bar('".a:filename."')<cr>"
 endfunction
 
 function! browse#open_page(filename, document_text)
@@ -599,7 +604,7 @@ function! browse#open_page(filename, document_text)
 	let ns_id = nvim_create_namespace('browse-nvim-'.g:browse_page_id)
 	let page = browse#render_page(a:document_text, bufnr, ns_id)
 	call timer_start(0, {->browse#render_other_elements(a:filename, bufnr, page)})
-	call browse#add_mappings(ns_id)
+	call browse#add_mappings(ns_id, a:filename)
 	setlocal nomodified
 	setlocal nomodifiable
 	let g:browse_page_id += 1
@@ -607,6 +612,98 @@ function! browse#open_page(filename, document_text)
 endfunction
 
 function! browse#open_file(filename)
+	if !exists('g:browse_setup')
+		call browse#setup()
+	endif
 	let document_text = readfile(expand(a:filename))
 	return browse#open_page(a:filename, document_text)
 endfunction
+
+function! browse#main_menu_redraw()
+	1,$delete
+	let line = winheight(0) / 2
+	let col = winwidth(0) / 2
+	let press_f6 = "Press CTRL-L or F6 to open address bar"
+	let col -= len(press_f6) / 2
+	let press_f6 = repeat(" ", col).press_f6
+	unlet col
+	let text = []
+	let i = 0
+	while i < line
+		let text += [""]
+		let i += 1
+	endwhile
+	unlet i
+	unlet line
+	let text += [press_f6]
+	unlet press_f6
+	call append(0, text)
+endfunction
+
+function! s:main_menu_set_autocmds()
+	let bufnr = bufnr()
+	execute 'augroup BrowseNvim_'.bufnr
+		autocmd!
+		execute 'autocmd' 'WinResized,VimResized' '*' 'if bufnr()==#'.bufnr.'|call browse#main_menu_redraw()|endif'
+	augroup END
+endfunction
+
+function! s:main_menu_quit(ns_id)
+	let bufnr = bufnr()
+	call nvim_buf_clear_namespace(bufnr, a:ns_id, 0, line('$')-1)
+	execute 'autocmd!' 'BrowseNvim_'.bufnr '*'
+	execute 'augroup!' 'BrowseNvim_'.bufnr
+	quit
+endfunction
+
+function! browse#address_bar(default="", quit=v:true)
+	let filename = input('Open file:', a:default, 'file')
+	if len(filename) <# 1
+		return
+	endif
+	if a:quit
+		normal q
+	endif
+	return browse#open_file(filename)
+endfunction
+
+function! s:main_menu_set_keymaps(ns_id)
+	execute 'noremap' '<buffer>' 'q' '<cmd>call <sid>main_menu_quit('.a:ns_id.')<cr>'
+	execute 'noremap' '<buffer>' '<f6>' '<cmd>call browse#address_bar()<cr>'
+	execute 'noremap' '<buffer>' '<c-l>' '<cmd>call browse#address_bar()<cr>'
+endfunction
+
+function! browse#main_menu()
+	if !exists('g:browse_setup')
+		call browse#setup()
+	endif
+	new
+	setlocal buftype=nofile
+	setlocal bufhidden=hide
+	setlocal noswapfile
+	setlocal undolevels=-1
+	setlocal nomodeline
+	setlocal filetype=
+	setlocal wrap
+	setlocal linebreak
+	setlocal nolist
+	setlocal nonumber
+	setlocal norelativenumber
+	let bufnr = bufnr()
+	let ns_id = nvim_create_namespace('browse-nvim-main-menu-'.g:browse_main_menu_id)
+	call browse#main_menu_redraw()
+	call s:main_menu_set_autocmds()
+	call s:main_menu_set_keymaps(ns_id)
+	let g:browse_main_menu_id += 1
+	return bufnr
+endfunction
+
+function! browse#browse(filename=v:null)
+	if a:filename !=# v:null
+		return browse#open_file(a:filename)
+	else
+		return browse#main_menu()
+	endif
+endfunction
+
+command! -nargs=? -complete=file Browse call browse#browse(<f-args>)
